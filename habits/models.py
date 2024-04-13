@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 from users.models import NULLABLE
 
 
@@ -40,8 +40,20 @@ class Habit(models.Model):
                                       verbose_name='Связанная привычка', related_name='good_habit')
     reward = models.TextField(**NULLABLE, verbose_name='Вознаграждение')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.frequency = None
+
     def __str__(self):
         return f'{self.time} - {self.action} {self.duration}'
+
+    def clean(self):
+        super().clean()
+
+        # Проверка на ограничение выполнения привычки реже, чем 1 раз в 7 дней
+        if self.frequency < 1 / 7:
+            raise ValidationError(
+                {'frequency': 'Установлено ограничение на выполнение привычки реже, чем 1 раз в 7 дней'})
 
     class Meta:
         verbose_name = 'привычка'
